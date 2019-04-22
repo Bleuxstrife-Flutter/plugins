@@ -7,6 +7,8 @@ package io.flutter.plugins.googlesignin;
 import android.accounts.Account;
 import android.app.Activity;
 import android.content.Intent;
+import android.util.Log;
+
 import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.auth.UserRecoverableAuthException;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -47,7 +49,7 @@ public class GoogleSignInPlugin implements MethodCallHandler {
   private static final String METHOD_IS_SIGNED_IN = "isSignedIn";
   private static final String METHOD_CLEAR_AUTH_CACHE = "clearAuthCache";
 
-  private final IDelegate delegate;
+  public static Delegate delegate;
 
   public static void registerWith(PluginRegistry.Registrar registrar) {
     final MethodChannel channel = new MethodChannel(registrar.messenger(), CHANNEL_NAME);
@@ -113,7 +115,7 @@ public class GoogleSignInPlugin implements MethodCallHandler {
   public interface IDelegate {
     /** Initializes this delegate so that it is ready to perform other operations. */
     public void init(
-        Result result, String signInOption, List<String> requestedScopes, String hostedDomain);
+            Result result, String signInOption, List<String> requestedScopes, String hostedDomain);
 
     /**
      * Returns the account information for the user who is signed in to this app. If no user is
@@ -165,7 +167,7 @@ public class GoogleSignInPlugin implements MethodCallHandler {
    * to guarantee such behavior; callers are responsible for providing such guarantees.
    */
   public static final class Delegate implements IDelegate, PluginRegistry.ActivityResultListener {
-    private static final int REQUEST_CODE_SIGNIN = 53293;
+    public static final int REQUEST_CODE_SIGNIN = 53293;
     private static final int REQUEST_CODE_RECOVER_AUTH = 53294;
 
     private static final String ERROR_REASON_EXCEPTION = "exception";
@@ -199,7 +201,7 @@ public class GoogleSignInPlugin implements MethodCallHandler {
     private void checkAndSetPendingOperation(String method, Result result, Object data) {
       if (pendingOperation != null) {
         throw new IllegalStateException(
-            "Concurrent operations detected: " + pendingOperation.method + ", " + method);
+                "Concurrent operations detected: " + pendingOperation.method + ", " + method);
       }
       pendingOperation = new PendingOperation(method, result, data);
     }
@@ -210,18 +212,18 @@ public class GoogleSignInPlugin implements MethodCallHandler {
      */
     @Override
     public void init(
-        Result result, String signInOption, List<String> requestedScopes, String hostedDomain) {
+            Result result, String signInOption, List<String> requestedScopes, String hostedDomain) {
       try {
         GoogleSignInOptions.Builder optionsBuilder;
 
         switch (signInOption) {
           case DEFAULT_GAMES_SIGN_IN:
             optionsBuilder =
-                new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_GAMES_SIGN_IN);
+                    new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_GAMES_SIGN_IN);
             break;
           case DEFAULT_SIGN_IN:
             optionsBuilder =
-                new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestEmail();
+                    new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestEmail();
             break;
           default:
             throw new IllegalStateException("Unknown signInOption");
@@ -232,11 +234,11 @@ public class GoogleSignInPlugin implements MethodCallHandler {
         // TODO(jackson): Perhaps we should provide a mechanism to override this
         // behavior.
         int clientIdIdentifier =
-            registrar
-                .context()
-                .getResources()
-                .getIdentifier(
-                    "default_web_client_id", "string", registrar.context().getPackageName());
+                registrar
+                        .context()
+                        .getResources()
+                        .getIdentifier(
+                                "default_web_client_id", "string", registrar.context().getPackageName());
         if (clientIdIdentifier != 0) {
           optionsBuilder.requestIdToken(registrar.context().getString(clientIdIdentifier));
         }
@@ -268,12 +270,12 @@ public class GoogleSignInPlugin implements MethodCallHandler {
         onSignInAccount(task.getResult());
       } else {
         task.addOnCompleteListener(
-            new OnCompleteListener<GoogleSignInAccount>() {
-              @Override
-              public void onComplete(Task<GoogleSignInAccount> task) {
-                onSignInResult(task);
-              }
-            });
+                new OnCompleteListener<GoogleSignInAccount>() {
+                  @Override
+                  public void onComplete(Task<GoogleSignInAccount> task) {
+                    onSignInResult(task);
+                  }
+                });
       }
     }
 
@@ -287,7 +289,6 @@ public class GoogleSignInPlugin implements MethodCallHandler {
         throw new IllegalStateException("signIn needs a foreground activity");
       }
       checkAndSetPendingOperation(METHOD_SIGN_IN, result);
-
       Intent signInIntent = signInClient.getSignInIntent();
       registrar.activity().startActivityForResult(signInIntent, REQUEST_CODE_SIGNIN);
     }
@@ -301,18 +302,18 @@ public class GoogleSignInPlugin implements MethodCallHandler {
       checkAndSetPendingOperation(METHOD_SIGN_OUT, result);
 
       signInClient
-          .signOut()
-          .addOnCompleteListener(
-              new OnCompleteListener<Void>() {
-                @Override
-                public void onComplete(Task<Void> task) {
-                  if (task.isSuccessful()) {
-                    finishWithSuccess(null);
-                  } else {
-                    finishWithError(ERROR_REASON_STATUS, "Failed to signout.");
-                  }
-                }
-              });
+              .signOut()
+              .addOnCompleteListener(
+                      new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(Task<Void> task) {
+                          if (task.isSuccessful()) {
+                            finishWithSuccess(null);
+                          } else {
+                            finishWithError(ERROR_REASON_STATUS, "Failed to signout.");
+                          }
+                        }
+                      });
     }
 
     /** Signs the user out, and revokes their credentials. */
@@ -321,18 +322,18 @@ public class GoogleSignInPlugin implements MethodCallHandler {
       checkAndSetPendingOperation(METHOD_DISCONNECT, result);
 
       signInClient
-          .revokeAccess()
-          .addOnCompleteListener(
-              new OnCompleteListener<Void>() {
-                @Override
-                public void onComplete(Task<Void> task) {
-                  if (task.isSuccessful()) {
-                    finishWithSuccess(null);
-                  } else {
-                    finishWithError(ERROR_REASON_STATUS, "Failed to disconnect.");
-                  }
-                }
-              });
+              .revokeAccess()
+              .addOnCompleteListener(
+                      new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(Task<Void> task) {
+                          if (task.isSuccessful()) {
+                            finishWithSuccess(null);
+                          } else {
+                            finishWithError(ERROR_REASON_STATUS, "Failed to disconnect.");
+                          }
+                        }
+                      });
     }
 
     /** Checks if there is a signed in user. */
@@ -403,29 +404,29 @@ public class GoogleSignInPlugin implements MethodCallHandler {
     @Override
     public void clearAuthCache(final Result result, final String token) {
       Callable<Void> clearTokenTask =
-          new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-              GoogleAuthUtil.clearToken(registrar.context(), token);
-              return null;
-            }
-          };
+              new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                  GoogleAuthUtil.clearToken(registrar.context(), token);
+                  return null;
+                }
+              };
 
       backgroundTaskRunner.runInBackground(
-          clearTokenTask,
-          new BackgroundTaskRunner.Callback<Void>() {
-            @Override
-            public void run(Future<Void> clearTokenFuture) {
-              try {
-                result.success(clearTokenFuture.get());
-              } catch (ExecutionException e) {
-                result.error(ERROR_REASON_EXCEPTION, e.getCause().getMessage(), null);
-              } catch (InterruptedException e) {
-                result.error(ERROR_REASON_EXCEPTION, e.getMessage(), null);
-                Thread.currentThread().interrupt();
-              }
-            }
-          });
+              clearTokenTask,
+              new BackgroundTaskRunner.Callback<Void>() {
+                @Override
+                public void run(Future<Void> clearTokenFuture) {
+                  try {
+                    result.success(clearTokenFuture.get());
+                  } catch (ExecutionException e) {
+                    result.error(ERROR_REASON_EXCEPTION, e.getCause().getMessage(), null);
+                  } catch (InterruptedException e) {
+                    result.error(ERROR_REASON_EXCEPTION, e.getMessage(), null);
+                    Thread.currentThread().interrupt();
+                  }
+                }
+              });
     }
 
     /**
@@ -437,63 +438,63 @@ public class GoogleSignInPlugin implements MethodCallHandler {
      */
     @Override
     public void getTokens(
-        final Result result, final String email, final boolean shouldRecoverAuth) {
+            final Result result, final String email, final boolean shouldRecoverAuth) {
       if (email == null) {
         result.error(ERROR_REASON_EXCEPTION, "Email is null", null);
         return;
       }
 
       Callable<String> getTokenTask =
-          new Callable<String>() {
-            @Override
-            public String call() throws Exception {
-              Account account = new Account(email, "com.google");
-              String scopesStr = "oauth2:" + Joiner.on(' ').join(requestedScopes);
-              return GoogleAuthUtil.getToken(registrar.context(), account, scopesStr);
-            }
-          };
+              new Callable<String>() {
+                @Override
+                public String call() throws Exception {
+                  Account account = new Account(email, "com.google");
+                  String scopesStr = "oauth2:" + Joiner.on(' ').join(requestedScopes);
+                  return GoogleAuthUtil.getToken(registrar.context(), account, scopesStr);
+                }
+              };
 
       // Background task runner has a single thread effectively serializing
       // the getToken calls. 1p apps can then enjoy the token cache if multiple
       // getToken calls are coming in.
       backgroundTaskRunner.runInBackground(
-          getTokenTask,
-          new BackgroundTaskRunner.Callback<String>() {
-            @Override
-            public void run(Future<String> tokenFuture) {
-              try {
-                String token = tokenFuture.get();
-                HashMap<String, String> tokenResult = new HashMap<>();
-                tokenResult.put("accessToken", token);
-                result.success(tokenResult);
-              } catch (ExecutionException e) {
-                if (e.getCause() instanceof UserRecoverableAuthException) {
-                  if (shouldRecoverAuth && pendingOperation == null) {
-                    Activity activity = registrar.activity();
-                    if (activity == null) {
-                      result.error(
-                          ERROR_USER_RECOVERABLE_AUTH,
-                          "Cannot recover auth because app is not in foreground. "
-                              + e.getLocalizedMessage(),
-                          null);
+              getTokenTask,
+              new BackgroundTaskRunner.Callback<String>() {
+                @Override
+                public void run(Future<String> tokenFuture) {
+                  try {
+                    String token = tokenFuture.get();
+                    HashMap<String, String> tokenResult = new HashMap<>();
+                    tokenResult.put("accessToken", token);
+                    result.success(tokenResult);
+                  } catch (ExecutionException e) {
+                    if (e.getCause() instanceof UserRecoverableAuthException) {
+                      if (shouldRecoverAuth && pendingOperation == null) {
+                        Activity activity = registrar.activity();
+                        if (activity == null) {
+                          result.error(
+                                  ERROR_USER_RECOVERABLE_AUTH,
+                                  "Cannot recover auth because app is not in foreground. "
+                                          + e.getLocalizedMessage(),
+                                  null);
+                        } else {
+                          checkAndSetPendingOperation(METHOD_GET_TOKENS, result, email);
+                          Intent recoveryIntent =
+                                  ((UserRecoverableAuthException) e.getCause()).getIntent();
+                          activity.startActivityForResult(recoveryIntent, REQUEST_CODE_RECOVER_AUTH);
+                        }
+                      } else {
+                        result.error(ERROR_USER_RECOVERABLE_AUTH, e.getLocalizedMessage(), null);
+                      }
                     } else {
-                      checkAndSetPendingOperation(METHOD_GET_TOKENS, result, email);
-                      Intent recoveryIntent =
-                          ((UserRecoverableAuthException) e.getCause()).getIntent();
-                      activity.startActivityForResult(recoveryIntent, REQUEST_CODE_RECOVER_AUTH);
+                      result.error(ERROR_REASON_EXCEPTION, e.getCause().getMessage(), null);
                     }
-                  } else {
-                    result.error(ERROR_USER_RECOVERABLE_AUTH, e.getLocalizedMessage(), null);
+                  } catch (InterruptedException e) {
+                    result.error(ERROR_REASON_EXCEPTION, e.getMessage(), null);
+                    Thread.currentThread().interrupt();
                   }
-                } else {
-                  result.error(ERROR_REASON_EXCEPTION, e.getCause().getMessage(), null);
                 }
-              } catch (InterruptedException e) {
-                result.error(ERROR_REASON_EXCEPTION, e.getMessage(), null);
-                Thread.currentThread().interrupt();
-              }
-            }
-          });
+              });
     }
 
     @Override
@@ -511,7 +512,7 @@ public class GoogleSignInPlugin implements MethodCallHandler {
             getTokens(result, email, false);
           } else {
             finishWithError(
-                ERROR_FAILURE_TO_RECOVER_AUTH, "Failed attempt to recover authentication");
+                    ERROR_FAILURE_TO_RECOVER_AUTH, "Failed attempt to recover authentication");
           }
           return true;
         case REQUEST_CODE_SIGNIN:

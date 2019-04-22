@@ -21,74 +21,74 @@ import java.util.concurrent.TimeUnit;
  */
 public final class BackgroundTaskRunner {
 
-  /**
-   * Interface that callers of this API can implement to be notified when a {@link
-   * #runInBackground(Callable,Callback) background task} has completed.
-   */
-  public interface Callback<T> {
     /**
-     * Invoked on the UI thread when the specified future has completed (calling {@code get()} on
-     * the future is guaranteed not to block). If the future completed with an exception, then
-     * {@code get()} will throw an {@code ExecutionException}.
+     * Interface that callers of this API can implement to be notified when a {@link
+     * #runInBackground(Callable,Callback) background task} has completed.
      */
-    void run(Future<T> future);
-  }
+    public interface Callback<T> {
+        /**
+         * Invoked on the UI thread when the specified future has completed (calling {@code get()} on
+         * the future is guaranteed not to block). If the future completed with an exception, then
+         * {@code get()} will throw an {@code ExecutionException}.
+         */
+        void run(Future<T> future);
+    }
 
-  private final ThreadPoolExecutor executor;
+    private final ThreadPoolExecutor executor;
 
-  /**
-   * Creates a new background processor with the given number of threads.
-   *
-   * @param threads The fixed number of threads in ther pool.
-   */
-  public BackgroundTaskRunner(int threads) {
-    BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
-    // Only keeps idle threads open for 1 second if we've got more threads than cores.
-    executor = new ThreadPoolExecutor(threads, threads, 1, TimeUnit.SECONDS, workQueue);
-  }
+    /**
+     * Creates a new background processor with the given number of threads.
+     *
+     * @param threads The fixed number of threads in ther pool.
+     */
+    public BackgroundTaskRunner(int threads) {
+        BlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>();
+        // Only keeps idle threads open for 1 second if we've got more threads than cores.
+        executor = new ThreadPoolExecutor(threads, threads, 1, TimeUnit.SECONDS, workQueue);
+    }
 
-  /**
-   * Executes the specified task in a background thread and notifies the specified callback once the
-   * task has completed (either successfully or with an exception).
-   *
-   * <p>The callback will be notified on the UI thread.
-   */
-  public <T> void runInBackground(Callable<T> task, final Callback<T> callback) {
-    final ListenableFuture<T> future = runInBackground(task);
-    future.addListener(
-        new Runnable() {
-          @Override
-          public void run() {
-            callback.run(future);
-          }
-        },
-        Executors.uiThreadExecutor());
-  }
+    /**
+     * Executes the specified task in a background thread and notifies the specified callback once the
+     * task has completed (either successfully or with an exception).
+     *
+     * <p>The callback will be notified on the UI thread.
+     */
+    public <T> void runInBackground(Callable<T> task, final Callback<T> callback) {
+        final ListenableFuture<T> future = runInBackground(task);
+        future.addListener(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.run(future);
+                    }
+                },
+                Executors.uiThreadExecutor());
+    }
 
-  /**
-   * Executes the specified task in a background thread and returns a future with which the caller
-   * can be notified of task completion.
-   *
-   * <p>Note: the future will be notified on the background thread. To be notified on the UI thread,
-   * use {@link #runInBackground(Callable,Callback)}.
-   */
-  public <T> ListenableFuture<T> runInBackground(final Callable<T> task) {
-    final SettableFuture<T> future = SettableFuture.create();
+    /**
+     * Executes the specified task in a background thread and returns a future with which the caller
+     * can be notified of task completion.
+     *
+     * <p>Note: the future will be notified on the background thread. To be notified on the UI thread,
+     * use {@link #runInBackground(Callable,Callback)}.
+     */
+    public <T> ListenableFuture<T> runInBackground(final Callable<T> task) {
+        final SettableFuture<T> future = SettableFuture.create();
 
-    executor.execute(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (!future.isCancelled()) {
-              try {
-                future.set(task.call());
-              } catch (Throwable t) {
-                future.setException(t);
-              }
-            }
-          }
-        });
+        executor.execute(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        if (!future.isCancelled()) {
+                            try {
+                                future.set(task.call());
+                            } catch (Throwable t) {
+                                future.setException(t);
+                            }
+                        }
+                    }
+                });
 
-    return future;
-  }
+        return future;
+    }
 }
