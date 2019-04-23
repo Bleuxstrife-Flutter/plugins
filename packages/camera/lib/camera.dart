@@ -83,9 +83,7 @@ class CameraDescription {
 
   @override
   bool operator ==(Object o) {
-    return o is CameraDescription &&
-        o.name == name &&
-        o.lensDirection == lensDirection;
+    return o is CameraDescription && o.name == name && o.lensDirection == lensDirection;
   }
 
   @override
@@ -118,9 +116,7 @@ class CameraPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return controller.value.isInitialized
-        ? Texture(textureId: controller._textureId)
-        : Container();
+    return controller.value.isInitialized ? Texture(textureId: controller._textureId) : Container();
   }
 }
 
@@ -248,10 +244,9 @@ class CameraController extends ValueNotifier<CameraValue> {
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
     }
-    _eventSubscription =
-        EventChannel('flutter.io/cameraPlugin/cameraEvents$_textureId')
-            .receiveBroadcastStream()
-            .listen(_listener);
+    _eventSubscription = EventChannel('flutter.io/cameraPlugin/cameraEvents$_textureId')
+        .receiveBroadcastStream()
+        .listen(_listener);
     _creatingCompleter.complete();
     return _creatingCompleter.future;
   }
@@ -284,7 +279,7 @@ class CameraController extends ValueNotifier<CameraValue> {
   /// The file can be read as this function returns.
   ///
   /// Throws a [CameraException] if the capture fails.
-  Future<void> takePicture(String path) async {
+  Future<void> takePicture(String path, {int maxSize}) async {
     if (!value.isInitialized || _isDisposed) {
       throw CameraException(
         'Uninitialized CameraController.',
@@ -302,10 +297,14 @@ class CameraController extends ValueNotifier<CameraValue> {
       // TODO(amirh): remove this on when the invokeMethod update makes it to stable Flutter.
       // https://github.com/flutter/flutter/issues/26431
       // ignore: strong_mode_implicit_dynamic_method
-      await _channel.invokeMethod(
-        'takePicture',
-        <String, dynamic>{'textureId': _textureId, 'path': path},
-      );
+
+      Map<String, dynamic> param = <String, dynamic>{'textureId': _textureId, 'path': path};
+
+      if (maxSize != null) {
+        param.putIfAbsent("maxSize", () => maxSize);
+      }
+
+      await _channel.invokeMethod('takePicture', param);
       value = value.copyWith(isTakingPicture: false);
     } on PlatformException catch (e) {
       value = value.copyWith(isTakingPicture: false);
@@ -355,10 +354,8 @@ class CameraController extends ValueNotifier<CameraValue> {
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
     }
-    const EventChannel cameraEventChannel =
-        EventChannel('plugins.flutter.io/camera/imageStream');
-    _imageStreamSubscription =
-        cameraEventChannel.receiveBroadcastStream().listen(
+    const EventChannel cameraEventChannel = EventChannel('plugins.flutter.io/camera/imageStream');
+    _imageStreamSubscription = cameraEventChannel.receiveBroadcastStream().listen(
       (dynamic imageData) {
         onAvailable(CameraImage._fromPlatformData(imageData));
       },
