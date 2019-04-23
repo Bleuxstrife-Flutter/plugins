@@ -49,9 +49,12 @@ CameraLensDirection _parseCameraLensDirection(String string) {
 /// May throw a [CameraException].
 Future<List<CameraDescription>> availableCameras() async {
   try {
-    final List<Map<dynamic, dynamic>> cameras = await _channel
-        .invokeListMethod<Map<dynamic, dynamic>>('availableCameras');
-    return cameras.map((Map<dynamic, dynamic> camera) {
+    final List<dynamic> cameras =
+        // TODO(amirh): remove this on when the invokeMethod update makes it to stable Flutter.
+        // https://github.com/flutter/flutter/issues/26431
+        // ignore: strong_mode_implicit_dynamic_method
+        await _channel.invokeMethod('availableCameras');
+    return cameras.map((dynamic camera) {
       return CameraDescription(
         name: camera['name'],
         lensDirection: _parseCameraLensDirection(camera['lensFacing']),
@@ -224,8 +227,10 @@ class CameraController extends ValueNotifier<CameraValue> {
     }
     try {
       _creatingCompleter = Completer<void>();
-      final Map<String, dynamic> reply =
-          await _channel.invokeMapMethod<String, dynamic>(
+      // TODO(amirh): remove this on when the invokeMethod update makes it to stable Flutter.
+      // https://github.com/flutter/flutter/issues/26431
+      // ignore: strong_mode_implicit_dynamic_method
+      final Map<dynamic, dynamic> reply = await _channel.invokeMethod(
         'initialize',
         <String, dynamic>{
           'cameraName': description.name,
@@ -249,21 +254,6 @@ class CameraController extends ValueNotifier<CameraValue> {
             .listen(_listener);
     _creatingCompleter.complete();
     return _creatingCompleter.future;
-  }
-
-  /// Prepare the capture session for video recording.
-  ///
-  /// Use of this method is optional, but it may be called for performance
-  /// reasons on iOS.
-  ///
-  /// Preparing audio can cause a minor delay in the CameraPreview view on iOS.
-  /// If video recording is intended, calling this early eliminates this delay
-  /// that would otherwise be experienced when video recording is started.
-  /// This operation is a no-op on Android.
-  ///
-  /// Throws a [CameraException] if the prepare fails.
-  Future<void> prepareForVideoRecording() async {
-    await _channel.invokeMethod<void>('prepareForVideoRecording');
   }
 
   /// Listen to events from the native plugins.
@@ -309,7 +299,10 @@ class CameraController extends ValueNotifier<CameraValue> {
     }
     try {
       value = value.copyWith(isTakingPicture: true);
-      await _channel.invokeMethod<void>(
+      // TODO(amirh): remove this on when the invokeMethod update makes it to stable Flutter.
+      // https://github.com/flutter/flutter/issues/26431
+      // ignore: strong_mode_implicit_dynamic_method
+      await _channel.invokeMethod(
         'takePicture',
         <String, dynamic>{'textureId': _textureId, 'path': path},
       );
@@ -354,7 +347,10 @@ class CameraController extends ValueNotifier<CameraValue> {
     }
 
     try {
-      await _channel.invokeMethod<void>('startImageStream');
+      // TODO(amirh): remove this on when the invokeMethod update makes it to stable Flutter.
+      // https://github.com/flutter/flutter/issues/26431
+      // ignore: strong_mode_implicit_dynamic_method
+      await _channel.invokeMethod('startImageStream');
       value = value.copyWith(isStreamingImages: true);
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
@@ -395,7 +391,10 @@ class CameraController extends ValueNotifier<CameraValue> {
 
     try {
       value = value.copyWith(isStreamingImages: false);
-      await _channel.invokeMethod<void>('stopImageStream');
+      // TODO(amirh): remove this on when the invokeMethod update makes it to stable Flutter.
+      // https://github.com/flutter/flutter/issues/26431
+      // ignore: strong_mode_implicit_dynamic_method
+      await _channel.invokeMethod('stopImageStream');
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
     }
@@ -435,7 +434,10 @@ class CameraController extends ValueNotifier<CameraValue> {
     }
 
     try {
-      await _channel.invokeMethod<void>(
+      // TODO(amirh): remove this on when the invokeMethod update makes it to stable Flutter.
+      // https://github.com/flutter/flutter/issues/26431
+      // ignore: strong_mode_implicit_dynamic_method
+      await _channel.invokeMethod(
         'startVideoRecording',
         <String, dynamic>{'textureId': _textureId, 'filePath': filePath},
       );
@@ -461,7 +463,10 @@ class CameraController extends ValueNotifier<CameraValue> {
     }
     try {
       value = value.copyWith(isRecordingVideo: false);
-      await _channel.invokeMethod<void>(
+      // TODO(amirh): remove this on when the invokeMethod update makes it to stable Flutter.
+      // https://github.com/flutter/flutter/issues/26431
+      // ignore: strong_mode_implicit_dynamic_method
+      await _channel.invokeMethod(
         'stopVideoRecording',
         <String, dynamic>{'textureId': _textureId},
       );
@@ -480,7 +485,10 @@ class CameraController extends ValueNotifier<CameraValue> {
     super.dispose();
     if (_creatingCompleter != null) {
       await _creatingCompleter.future;
-      await _channel.invokeMethod<void>(
+      // TODO(amirh): remove this on when the invokeMethod update makes it to stable Flutter.
+      // https://github.com/flutter/flutter/issues/26431
+      // ignore: strong_mode_implicit_dynamic_method
+      await _channel.invokeMethod(
         'dispose',
         <String, dynamic>{'textureId': _textureId},
       );

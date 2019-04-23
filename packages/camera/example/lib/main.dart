@@ -29,36 +29,12 @@ IconData getCameraLensIcon(CameraLensDirection direction) {
 void logError(String code, String message) =>
     print('Error: $code\nError Message: $message');
 
-class _CameraExampleHomeState extends State<CameraExampleHome>
-    with WidgetsBindingObserver {
+class _CameraExampleHomeState extends State<CameraExampleHome> {
   CameraController controller;
   String imagePath;
   String videoPath;
   VideoPlayerController videoController;
   VoidCallback videoPlayerListener;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive) {
-      controller?.dispose();
-    } else if (state == AppLifecycleState.resumed) {
-      if (controller != null) {
-        onNewCameraSelected(controller.description);
-      }
-    }
-  }
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -134,7 +110,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
             ? null
             : SizedBox(
                 child: (videoController == null)
-                    ? Image.file(File(imagePath))
+                    ? Image.file(File(imagePath), fit: BoxFit.cover)
                     : Container(
                         child: Center(
                           child: AspectRatio(
