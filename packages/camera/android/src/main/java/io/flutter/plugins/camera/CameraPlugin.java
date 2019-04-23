@@ -7,6 +7,8 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.Point;
 import android.graphics.SurfaceTexture;
@@ -24,6 +26,7 @@ import android.media.ImageReader;
 import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.Size;
 import android.view.Display;
 import android.view.OrientationEventListener;
@@ -38,6 +41,8 @@ import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.view.FlutterView;
+
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -202,7 +207,7 @@ public class CameraPlugin implements MethodCallHandler {
         }
       case "takePicture":
         {
-          camera.takePicture((String) call.argument("path"), result);
+          camera.takePicture((String) call.argument("path"), call.argument("maxSize") == null ? 0 : (int) (call.argument("maxSize")), result);
           break;
         }
       case "startVideoRecording":
@@ -574,7 +579,7 @@ public class CameraPlugin implements MethodCallHandler {
       }
     }
 
-    private void takePicture(String filePath, @NonNull final Result result) {
+    private void takePicture(String filePath, final int maxSize, @NonNull final Result result) {
       final File file = new File(filePath);
 
       if (file.exists()) {
@@ -591,6 +596,26 @@ public class CameraPlugin implements MethodCallHandler {
             public void onImageAvailable(ImageReader reader) {
               try (Image image = reader.acquireLatestImage()) {
                 ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+
+                byte[] bytes = new byte[buffer.capacity()];
+                buffer.get(bytes);
+                Bitmap bitmapImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, null);
+                Log.d("sesuatu", "maxSize = " + maxSize);
+                if (maxSize != 0) {
+                  double initialWidth = bitmapImage.getWidth();
+                  double initialHeight = bitmapImage.getHeight();
+                  int width = initialHeight < initialWidth ? maxSize : (int) (initialWidth / initialHeight * maxSize);
+                  int height = initialWidth <= initialHeight ? maxSize : (int) (initialHeight / initialWidth * maxSize);
+                  Log.d("lalala", "width = " + width);
+                  Log.d("lalala", "height = " + height);
+                  bitmapImage = Bitmap.createScaledBitmap(bitmapImage, width,
+                          height, true);
+                  ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                  bitmapImage.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                  byte[] byteArray = stream.toByteArray();
+                  buffer = ByteBuffer.wrap(byteArray);
+                }
+
                 writeToFile(buffer, file);
                 result.success(null);
               } catch (IOException e) {
