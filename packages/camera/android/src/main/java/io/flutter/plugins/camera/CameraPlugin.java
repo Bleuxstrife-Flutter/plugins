@@ -1,5 +1,6 @@
 package io.flutter.plugins.camera;
 
+import static android.content.Context.CAMERA_SERVICE;
 import static android.view.OrientationEventListener.ORIENTATION_UNKNOWN;
 
 import android.Manifest;
@@ -10,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -600,23 +602,30 @@ public class CameraPlugin implements MethodCallHandler {
                 byte[] bytes = new byte[buffer.capacity()];
                 buffer.get(bytes);
                 Bitmap bitmapImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, null);
-                Log.d("sesuatu", "maxSize = " + maxSize);
                 if (maxSize != 0) {
                   double initialWidth = bitmapImage.getWidth();
                   double initialHeight = bitmapImage.getHeight();
                   int width = initialHeight < initialWidth ? maxSize : (int) (initialWidth / initialHeight * maxSize);
                   int height = initialWidth <= initialHeight ? maxSize : (int) (initialHeight / initialWidth * maxSize);
-                  Log.d("lalala", "width = " + width);
-                  Log.d("lalala", "height = " + height);
                   bitmapImage = Bitmap.createScaledBitmap(bitmapImage, width,
                           height, true);
-                  ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                  bitmapImage.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-                  byte[] byteArray = stream.toByteArray();
-                  buffer = ByteBuffer.wrap(byteArray);
                 }
 
-                writeToFile(buffer, file);
+                Matrix matrix = new Matrix();
+
+                if (isFrontFacing) {
+                  matrix.preScale(-1.0f, 1.0f);
+                }
+                matrix.postRotate(90);
+
+                Bitmap rotatedBitmap = Bitmap.createBitmap(bitmapImage, 0, 0, bitmapImage.getWidth(), bitmapImage.getHeight(), matrix, true);
+
+                ByteArrayOutputStream rotatedStream = new ByteArrayOutputStream();
+                rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, rotatedStream);
+                byte[] rotatedByteArray = rotatedStream.toByteArray();
+                ByteBuffer rotatedBuffer = ByteBuffer.wrap(rotatedByteArray);
+
+                writeToFile(rotatedBuffer, file);
                 result.success(null);
               } catch (IOException e) {
                 result.error("IOError", "Failed saving image", null);
