@@ -599,9 +599,10 @@ public class CameraPlugin implements MethodCallHandler {
 
                     if (isFrontFacing) {
                       matrix.preScale(-1.0f, 1.0f);
+                      matrix.postRotate(-rotationDegrees);
+                    } else {
+                      matrix.postRotate(rotationDegrees);
                     }
-
-                    matrix.postRotate(rotationDegrees);
 
                     Bitmap rotatedBitmap = Bitmap.createBitmap(bitmapImage, 0, 0, bitmapImage.getWidth(), bitmapImage.getHeight(), matrix, true);
 

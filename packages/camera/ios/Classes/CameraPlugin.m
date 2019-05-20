@@ -96,9 +96,29 @@ previewPhotoSampleBuffer:(CMSampleBufferRef)previewPhotoSampleBuffer
         } else {
             height = image.size.height / image.size.width * _maxSize;
         }
-        
+        UIImage* flippedImage;
+
+        if (_cameraPosition == 2) {
+            UIImageOrientation currentOrientation;
+
+            if ([self getImageRotation] == UIImageOrientationUp) {
+                currentOrientation = UIImageOrientationUpMirrored;
+            } else if ([self getImageRotation] == UIImageOrientationDown) {
+                currentOrientation = UIImageOrientationDownMirrored;
+            } else if ([self getImageRotation] == UIImageOrientationRight) {
+                currentOrientation = UIImageOrientationLeftMirrored;
+            } else if ([self getImageRotation] == UIImageOrientationLeft) {
+                currentOrientation = UIImageOrientationRightMirrored;
+            }
+
+            flippedImage = [UIImage imageWithCGImage: image.CGImage
+                                scale: image.scale
+                          orientation: currentOrientation];
+        } else if (_cameraPosition == 1) {
+            flippedImage = image;
+        }
         UIGraphicsBeginImageContext(CGSizeMake(width, height));
-        [image drawInRect:CGRectMake(0, 0, width, height)];
+        [flippedImage drawInRect:CGRectMake(0, 0, width, height)];
         finalImage = UIGraphicsGetImageFromCurrentImageContext();
         UIGraphicsEndImageContext();
     }
